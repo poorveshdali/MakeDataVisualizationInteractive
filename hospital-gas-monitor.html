@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#061a32" />
+    <title>Hospital Gas Monitor</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inconsolata:wdth,wght@75..125,200..900&display=swap");
+
+      :root {
+        color-scheme: dark;
+        font-family: "Inconsolata", ui-monospace, SFMono-Regular, Menlo, Monaco,
+          Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        min-width: 402px;
+        padding: 24px;
+        overflow-x: auto;
+        background: #061a32;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      .monitor {
+        position: relative;
+        width: 402px;
+        height: 874px;
+        flex: none;
+        overflow: hidden;
+        border-radius: 63px;
+        background: linear-gradient(
+          180deg,
+          #1b3d64 0%,
+          #193a60 7.69%,
+          #18375c 15.38%,
+          #163558 23.08%,
+          #143254 30.77%,
+          #122f50 38.46%,
+          #112c4c 46.15%,
+          #0f2a48 53.85%,
+          #0d2745 61.54%,
+          #0c2441 69.23%,
+          #0a223d 76.92%,
+          #091f39 84.62%,
+          #071d36 92.31%,
+          #061a32 100%
+        );
+        box-shadow:
+          0 30px 90px rgba(0, 0, 0, 0.48),
+          inset 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .dynamic-island {
+        position: absolute;
+        z-index: 20;
+        top: 14px;
+        left: 139px;
+        width: 124px;
+        height: 36px;
+        border-radius: 18px;
+        background: #000;
+      }
+
+      .status-bar {
+        position: absolute;
+        z-index: 20;
+        top: 26px;
+        left: 57px;
+        width: 307px;
+        height: 13px;
+        color: #b2b2b2;
+      }
+
+      .status-time {
+        position: absolute;
+        left: 0;
+        top: -2px;
+        font: 600 12px/13px Arial, sans-serif;
+      }
+
+      .status-icons {
+        position: absolute;
+        right: 0;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .signal {
+        display: flex;
+        align-items: end;
+        gap: 1px;
+        height: 10px;
+      }
+
+      .signal i {
+        display: block;
+        width: 2px;
+        border-radius: 1px;
+        background: currentColor;
+      }
+
+      .signal i:nth-child(1) { height: 3px; }
+      .signal i:nth-child(2) { height: 5px; }
+      .signal i:nth-child(3) { height: 7px; }
+      .signal i:nth-child(4) { height: 9px; }
+
+      .wifi {
+        width: 12px;
+        height: 9px;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        transform: translateY(2px);
+      }
+
+      .battery {
+        position: relative;
+        width: 19px;
+        height: 9px;
+        border: 1px solid currentColor;
+        border-radius: 2px;
+      }
+
+      .battery::before {
+        position: absolute;
+        inset: 1px;
+        border-radius: 1px;
+        background: currentColor;
+        content: "";
+      }
+
+      .battery::after {
+        position: absolute;
+        top: 2px;
+        right: -3px;
+        width: 2px;
+        height: 3px;
+        border-radius: 0 1px 1px 0;
+        background: currentColor;
+        content: "";
+      }
+
+      .tube {
+        position: absolute;
+        top: 0;
+        left: 51px;
+        width: 300px;
+        height: 625px;
+        overflow: hidden;
+        border-radius: 12px;
+        pointer-events: none;
+        -webkit-mask-image:
+          linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%),
+          linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+        -webkit-mask-composite: source-in;
+        mask-image:
+          linear-gradient(to bottom, transparent 0%, #000 5%, #000 95%, transparent 100%),
+          linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+        mask-composite: intersect;
+      }
+
+      .fog {
+        position: absolute;
+        top: 0;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        opacity: 0.25;
+        filter: blur(80px);
+        background: radial-gradient(
+          circle,
+          rgba(120, 190, 220, 0.9) 0%,
+          rgba(90, 150, 190, 0.35) 55%,
+          rgba(90, 150, 190, 0) 75%
+        );
+        animation: fog-drift var(--duration) linear var(--delay) infinite;
+      }
+
+      .stream {
+        position: absolute;
+        inset: -15% -25%;
+        opacity: var(--stream-opacity);
+        filter: blur(20px);
+        background-image: radial-gradient(
+          circle at 50% 50%,
+          rgba(120, 190, 220, 0.23) 0%,
+          rgba(90, 150, 190, 0.09) 55%,
+          rgba(90, 150, 190, 0) 75%
+        );
+        background-repeat: repeat-y;
+        background-size: 100% 170px;
+        animation: stream-move var(--stream-duration) linear infinite;
+        transition: opacity 0.9s ease;
+      }
+
+      .wisps {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      .wisp {
+        position: absolute;
+        top: 0;
+        width: 3px;
+        height: 120px;
+        border-radius: 999px;
+        opacity: 0;
+        filter: blur(2px);
+        background: linear-gradient(
+          180deg,
+          rgba(210, 235, 245, 0) 0%,
+          rgba(210, 235, 245, 0.3) 25%,
+          rgba(210, 235, 245, 0.3) 75%,
+          rgba(210, 235, 245, 0) 100%
+        );
+        animation: wisp-rise var(--wisp-duration) linear var(--wisp-delay) infinite;
+      }
+
+      @keyframes fog-drift {
+        from { transform: translateX(-50%) translateY(900px); }
+        to { transform: translateX(-50%) translateY(-120%); }
+      }
+
+      @keyframes stream-move {
+        from { background-position-y: 170px; }
+        to { background-position-y: 0; }
+      }
+
+      @keyframes wisp-rise {
+        0% { transform: translateY(900px); opacity: 0; }
+        8%, 88% { opacity: 0.3; }
+        100% { transform: translateY(-140px); opacity: 0; }
+      }
+
+      .rail {
+        position: absolute;
+        top: 84px;
+        z-index: 2;
+        width: 7px;
+        height: 530px;
+        border-radius: 999px;
+        background: linear-gradient(
+          to top,
+          #fff 0%,
+          #00b85c 34%,
+          #ffd933 67%,
+          #ff3b30 100%
+        );
+        box-shadow: 0 0 14px rgba(104, 189, 220, 0.24);
+      }
+
+      .rail.left { left: 47.5px; }
+      .rail.right { right: 47.5px; }
+
+      .ticks {
+        position: absolute;
+        z-index: 3;
+        top: 112px;
+        width: 40px;
+        height: 465px;
+        pointer-events: none;
+      }
+
+      .ticks.left { left: 53px; }
+      .ticks.right { right: 54px; }
+
+      .tick {
+        position: absolute;
+        height: 1.5px;
+        background: rgba(255, 255, 255, 0.2);
+        transition: background 0.2s ease;
+      }
+
+      .ticks.left .tick { left: 0; }
+      .ticks.right .tick { right: 0; }
+      .tick.major { width: 14px; background: rgba(255, 255, 255, 0.5); }
+      .tick.minor { width: 8px; }
+      .tick.active { background: rgba(255, 255, 255, 0.95); }
+
+      .gauge {
+        position: absolute;
+        z-index: 5;
+        left: 24px;
+        width: 354px;
+        height: 97px;
+        transition: top 0.1s linear;
+        pointer-events: none;
+      }
+
+      .gauge-line {
+        position: absolute;
+        top: 48px;
+        width: 151px;
+        height: 2px;
+      }
+
+      .gauge-line.left {
+        left: 0;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9));
+      }
+
+      .gauge-line.right {
+        right: 0;
+        background: linear-gradient(to right, rgba(255, 255, 255, 0.9), transparent);
+      }
+
+      .float {
+        position: absolute;
+        inset: 0;
+        animation: thorpe-float 4050ms cubic-bezier(0.37, 0, 0.63, 1) 1ms infinite;
+        will-change: transform;
+      }
+
+      @keyframes thorpe-float {
+        0%, 100% { transform: translateY(0); }
+        33.333% { transform: translateY(-5px); }
+        66.666% { transform: translateY(2px); }
+      }
+
+      .gauge-circle {
+        position: absolute;
+        top: 0;
+        left: 131px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 97px;
+        height: 97px;
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        background: var(--flow-color);
+        box-shadow:
+          0 4px 24px rgba(0, 0, 0, 0.3),
+          inset 0 1px rgba(255, 255, 255, 0.18),
+          0 0 22px color-mix(in srgb, var(--flow-color), transparent 73%);
+        color: var(--flow-text);
+        transition:
+          color 0.22s ease,
+          background-color 0.22s ease,
+          box-shadow 0.22s ease;
+      }
+
+      .flow-value {
+        margin-top: -2px;
+        font-size: 40px;
+        font-weight: 300;
+        line-height: 38px;
+      }
+
+      .flow-unit {
+        font-size: 15px;
+        font-weight: 300;
+        line-height: 17px;
+      }
+
+      .bed-card {
+        position: absolute;
+        z-index: 10;
+        top: 80px;
+        left: 34px;
+        width: 334px;
+        height: 76px;
+        border: 0.584px solid rgba(255, 255, 255, 0.18);
+        border-radius: 20px;
+        background: linear-gradient(
+          167deg,
+          rgba(255, 255, 255, 0.13),
+          rgba(255, 255, 255, 0.04)
+        );
+        box-shadow:
+          0 4px 24px rgba(0, 0, 0, 0.25),
+          inset 0 1px rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(16px);
+      }
+
+      .bed-copy {
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        width: 250px;
+        transform: translateX(-50%);
+        text-align: center;
+      }
+
+      .bed-title {
+        margin: 0;
+        color: #fff;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 38px;
+      }
+
+      .bed-meta {
+        margin: 1px 0 0;
+        color: rgba(210, 230, 248, 0.7);
+        font-size: 11px;
+        font-weight: 300;
+        letter-spacing: 0.275px;
+      }
+
+      .bed-arrow {
+        position: absolute;
+        top: 16px;
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        cursor: pointer;
+        color: #d9d9d9;
+        background: transparent;
+        transition:
+          opacity 0.2s ease,
+          transform 0.1s ease;
+      }
+
+      .bed-arrow.prev { left: 0; }
+      .bed-arrow.next { right: 0; }
+      .bed-arrow:active:not(:disabled) { transform: scale(0.86); }
+      .bed-arrow:disabled { opacity: 0.3; cursor: default; }
+
+      .bed-arrow::before {
+        width: 12px;
+        height: 12px;
+        border-top: 3px solid currentColor;
+        border-left: 3px solid currentColor;
+        content: "";
+      }
+
+      .bed-arrow.prev::before { transform: rotate(-45deg); }
+      .bed-arrow.next::before { transform: rotate(135deg); }
+
+      .gas-bar {
+        position: absolute;
+        z-index: 7;
+        top: 566px;
+        left: 47px;
+        display: grid;
+        place-items: center;
+        width: 308px;
+        height: 56px;
+        border-radius: 7px;
+        background: var(--gas-color);
+        box-shadow:
+          0 0 10px color-mix(in srgb, var(--gas-color), transparent 67%),
+          0 0 24px color-mix(in srgb, var(--gas-color), transparent 81%);
+        color: #fff;
+        font-size: 20px;
+        transition:
+          background 0.5s ease,
+          box-shadow 0.5s ease;
+      }
+
+      .remaining-label {
+        position: absolute;
+        top: 663px;
+        left: 126px;
+        z-index: 7;
+        margin: 0;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 20px;
+        font-weight: 300;
+      }
+
+      .remaining-value {
+        position: absolute;
+        top: 652px;
+        left: 263px;
+        z-index: 7;
+        width: 89px;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .remaining-value strong {
+        font-size: 48px;
+        line-height: 48px;
+      }
+
+      .remaining-value span {
+        font-size: 24px;
+        font-weight: 300;
+      }
+
+      .slider-section {
+        position: absolute;
+        z-index: 12;
+        top: 713px;
+        left: 35px;
+        width: 335px;
+      }
+
+      .safe-range {
+        margin: 0 0 8px;
+        color: #e8f4fe;
+        font-size: 15px;
+        line-height: 23px;
+        text-align: center;
+        letter-spacing: 0.3px;
+      }
+
+      .slider-card {
+        width: 100%;
+        padding: 15px 17px;
+        border: 0.584px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        background: linear-gradient(
+          168deg,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0.03)
+        );
+        box-shadow:
+          0 4px 24px rgba(0, 0, 0, 0.25),
+          inset 0 1px rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(16px);
+      }
+
+      .slider-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 40px;
+      }
+
+      .slider-track,
+      .slider-progress {
+        position: absolute;
+        top: 12px;
+        right: 0;
+        left: 0;
+        height: 16px;
+        border-radius: 999px;
+      }
+
+      .slider-track {
+        background: rgba(180, 190, 210, 0.25);
+      }
+
+      .slider-progress {
+        background: linear-gradient(
+          90deg,
+          #fff 0%,
+          #2ee325 46.15%,
+          #fffb22 80.29%,
+          #ff1e00 100%
+        );
+        clip-path: inset(0 var(--slider-mask) 0 0 round 999px);
+      }
+
+      #flow-slider {
+        position: absolute;
+        z-index: 3;
+        inset: 0;
+        width: 100%;
+        height: 40px;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      #flow-slider::-webkit-slider-thumb {
+        width: 40px;
+        height: 40px;
+        cursor: grab;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      #flow-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+
+      #flow-slider::-moz-range-thumb {
+        width: 40px;
+        height: 40px;
+        border: 0;
+        background: transparent;
+        cursor: grab;
+      }
+
+      .slider-thumb {
+        position: absolute;
+        z-index: 2;
+        top: 50%;
+        left: var(--slider-position);
+        width: 40px;
+        height: 40px;
+        border: 0.584px solid rgba(255, 255, 255, 0.35);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.25),
+          rgba(255, 255, 255, 0.08)
+        );
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+        backdrop-filter: blur(10px);
+        pointer-events: none;
+      }
+
+      .home-indicator {
+        position: absolute;
+        bottom: 8px;
+        left: 134px;
+        width: 134px;
+        height: 5px;
+        border-radius: 100px;
+        background: #b2b2b2;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .fog,
+        .stream,
+        .wisp,
+        .float {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="monitor"
+      id="monitor"
+      style="
+        --flow-color: rgb(0, 184, 92);
+        --flow-text: rgba(255, 255, 255, 0.8);
+        --gas-color: #93c5e8;
+        --slider-position: 28.571%;
+        --slider-mask: 71.429%;
+        --stream-duration: 2.85s;
+        --stream-opacity: 0.54;
+        --wisp-duration: 1.79s;
+      "
+      aria-label="Hospital gas flow monitor"
+    >
+      <div class="status-bar" aria-hidden="true">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <span class="signal"><i></i><i></i><i></i><i></i></span>
+          <span class="wifi"></span>
+          <span class="battery"></span>
+        </div>
+      </div>
+      <div class="dynamic-island" aria-hidden="true"></div>
+
+      <div class="tube" aria-hidden="true">
+        <div class="fog" style="left: 35%; width: 180px; height: 180px; --duration: 7.03s; --delay: 0s"></div>
+        <div class="fog" style="left: 60%; width: 220px; height: 220px; --duration: 9.38s; --delay: -8s"></div>
+        <div class="fog" style="left: 25%; width: 160px; height: 160px; --duration: 7.81s; --delay: -14s"></div>
+        <div class="fog" style="left: 55%; width: 200px; height: 200px; --duration: 8.59s; --delay: -5s"></div>
+        <div class="stream"></div>
+        <div class="wisps" id="wisps"></div>
+      </div>
+
+      <div class="rail left" aria-hidden="true"></div>
+      <div class="rail right" aria-hidden="true"></div>
+      <div class="ticks left" id="left-ticks" aria-hidden="true"></div>
+      <div class="ticks right" id="right-ticks" aria-hidden="true"></div>
+
+      <section class="bed-card" aria-label="Selected bed">
+        <button class="bed-arrow prev" id="previous-bed" aria-label="Previous bed"></button>
+        <div class="bed-copy" aria-live="polite">
+          <p class="bed-title" id="bed-title">Bed No. 1</p>
+          <p class="bed-meta" id="bed-meta">Patient: Rahul S · Nurse: Payal</p>
+        </div>
+        <button class="bed-arrow next" id="next-bed" aria-label="Next bed"></button>
+      </section>
+
+      <div class="gauge" id="gauge" style="top: 375px" aria-live="polite">
+        <div class="gauge-line left"></div>
+        <div class="gauge-line right"></div>
+        <div class="float">
+          <div class="gauge-circle">
+            <span class="flow-value" id="flow-value">04</span>
+            <span class="flow-unit">L/min</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gas-bar" id="gas-name">Oxygen (O₂)</div>
+
+      <p class="remaining-label">Time Remaining:</p>
+      <div class="remaining-value"><strong id="remaining-hours">11</strong> <span>hr</span></div>
+
+      <section class="slider-section" aria-label="Flow rate control">
+        <p class="safe-range">Prescribed safe range: 2–6 L/min</p>
+        <div class="slider-card">
+          <div class="slider-wrap">
+            <div class="slider-track"></div>
+            <div class="slider-progress"></div>
+            <input
+              id="flow-slider"
+              type="range"
+              min="1"
+              max="15"
+              step="1"
+              value="5"
+              aria-label="Flow rate in litres per minute"
+            />
+            <div class="slider-thumb" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="home-indicator" aria-hidden="true"></div>
+    </main>
+
+    <script>
+      (() => {
+        const MIN_FLOW = 1;
+        const MAX_FLOW = 15;
+        const ANIMATION_SPEED = 1.6;
+
+        const beds = [
+          { gas: "Oxygen (O₂)", color: "#93C5E8", patient: "Rahul S", nurse: "Payal" },
+          { gas: "Nitrous Oxide (N₂O)", color: "#C4B5E8", patient: "Meera K", nurse: "Anjali" },
+          { gas: "Medical Air", color: "#A8BDD4", patient: "Arjun V", nurse: "Sunita" },
+          { gas: "Carbon Dioxide (CO₂)", color: "#96D4B4", patient: "Priya M", nurse: "Rekha" },
+          { gas: "Nitrogen (N₂)", color: "#A0B8C8", patient: "Suresh R", nurse: "Divya" },
+          { gas: "Helium (He)", color: "#F5C09A", patient: "Kavitha N", nurse: "Shalini" },
+          { gas: "Entonox (O₂/N₂O)", color: "#C0AAE0", patient: "Rajan P", nurse: "Usha" },
+        ];
+
+        const colorStops = [
+          { t: 0, rgb: [255, 255, 255] },
+          { t: 0.34, rgb: [0, 184, 92] },
+          { t: 0.67, rgb: [255, 217, 51] },
+          { t: 1, rgb: [255, 59, 48] },
+        ];
+
+        const monitor = document.querySelector("#monitor");
+        const slider = document.querySelector("#flow-slider");
+        const gauge = document.querySelector("#gauge");
+        const flowValue = document.querySelector("#flow-value");
+        const hours = document.querySelector("#remaining-hours");
+        const bedTitle = document.querySelector("#bed-title");
+        const bedMeta = document.querySelector("#bed-meta");
+        const gasName = document.querySelector("#gas-name");
+        const previousBed = document.querySelector("#previous-bed");
+        const nextBed = document.querySelector("#next-bed");
+        const wisps = document.querySelector("#wisps");
+        let bedIndex = 0;
+
+        function flowColor(value) {
+          const t = Math.max(0, Math.min(1, value));
+          for (let index = 0; index < colorStops.length - 1; index += 1) {
+            const start = colorStops[index];
+            const end = colorStops[index + 1];
+            if (t <= end.t) {
+              const progress = (t - start.t) / (end.t - start.t);
+              const channels = start.rgb.map((channel, channelIndex) =>
+                Math.round(channel + (end.rgb[channelIndex] - channel) * progress),
+              );
+              return `rgb(${channels.join(", ")})`;
+            }
+          }
+          return "rgb(255, 59, 48)";
+        }
+
+        function buildTicks(container) {
+          for (let value = 0; value <= 15; value += 1) {
+            const tick = document.createElement("span");
+            tick.className = `tick ${value % 5 === 0 ? "major" : "minor"}`;
+            tick.dataset.value = String(value);
+            tick.style.top = `${416.5 - value * (320 / 15)}px`;
+            container.append(tick);
+          }
+        }
+
+        function updateWisps(t) {
+          const activeCount = t <= 4 / 14 ? 1 : t <= 10 / 14 ? 3 : 4;
+          const duration = (7 - t * 4.5) / (2 * ANIMATION_SPEED);
+          wisps.replaceChildren();
+          for (let index = 0; index < activeCount; index += 1) {
+            const wisp = document.createElement("span");
+            wisp.className = "wisp";
+            wisp.style.left = `${5 + Math.random() * 88}%`;
+            wisp.style.setProperty("--wisp-duration", `${duration.toFixed(2)}s`);
+            wisp.style.setProperty("--wisp-delay", `${(-Math.random() * duration).toFixed(2)}s`);
+            wisp.addEventListener("animationiteration", () => {
+              wisp.style.left = `${5 + Math.random() * 88}%`;
+            });
+            wisps.append(wisp);
+          }
+        }
+
+        function renderFlow() {
+          const flow = Number(slider.value);
+          const t = (flow - MIN_FLOW) / (MAX_FLOW - MIN_FLOW);
+          const streamDuration = (5.5 - t * 3.3) / ANIMATION_SPEED;
+          const color = flowColor(t);
+
+          monitor.style.setProperty("--flow-color", color);
+          monitor.style.setProperty(
+            "--flow-text",
+            t === 0 ? "rgba(0, 0, 0, 0.82)" : "rgba(255, 255, 255, 0.8)",
+          );
+          monitor.style.setProperty("--slider-position", `${t * 100}%`);
+          monitor.style.setProperty("--slider-mask", `${100 - t * 100}%`);
+          monitor.style.setProperty("--stream-duration", `${streamDuration.toFixed(2)}s`);
+          monitor.style.setProperty("--stream-opacity", String(0.35 + t * 0.65));
+
+          document.querySelectorAll(".fog").forEach((fog, index) => {
+            const baseDurations = [18, 24, 20, 22];
+            const duration = baseDurations[index] / ((1 + t * 3) * ANIMATION_SPEED);
+            fog.style.setProperty("--duration", `${duration.toFixed(2)}s`);
+          });
+
+          gauge.style.top = `${Math.max(160, Math.round(480 - t * 368))}px`;
+          flowValue.textContent = String(Math.round(t * 15)).padStart(2, "0");
+          hours.textContent = String(Math.round(12 - t * 5)).padStart(2, "0");
+
+          document.querySelectorAll(".tick").forEach((tick) => {
+            tick.classList.toggle("active", Number(tick.dataset.value) === Math.round(t * 15));
+          });
+
+          updateWisps(t);
+        }
+
+        function renderBed() {
+          const bed = beds[bedIndex];
+          bedTitle.textContent = `Bed No. ${bedIndex + 1}`;
+          bedMeta.textContent = `Patient: ${bed.patient} · Nurse: ${bed.nurse}`;
+          gasName.textContent = bed.gas;
+          monitor.style.setProperty("--gas-color", bed.color);
+          previousBed.disabled = bedIndex === 0;
+          nextBed.disabled = bedIndex === beds.length - 1;
+        }
+
+        buildTicks(document.querySelector("#left-ticks"));
+        buildTicks(document.querySelector("#right-ticks"));
+
+        slider.addEventListener("input", renderFlow);
+        previousBed.addEventListener("click", () => {
+          bedIndex = Math.max(0, bedIndex - 1);
+          renderBed();
+        });
+        nextBed.addEventListener("click", () => {
+          bedIndex = Math.min(beds.length - 1, bedIndex + 1);
+          renderBed();
+        });
+
+        renderBed();
+        renderFlow();
+      })();
+    </script>
+  </body>
+</html>
